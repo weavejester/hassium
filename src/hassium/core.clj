@@ -93,16 +93,20 @@
 (defn find
   "Find all documents in the collection matching the criteria."
   ([coll]
-     (as-clojure (.find coll)))
+     (find coll {}))
   ([coll criteria]
-     (as-clojure (.find coll (as-mongo criteria)))))
+     (find coll {} nil))
+  ([coll criteria fields]
+     (as-clojure (.find coll (as-mongo criteria) (as-mongo fields)))))
 
 (defn find-one
   "Find one document from the collection matching the criteria."
   ([coll]
-     (as-clojure (.findOne coll)))
+     (find-one coll {}))
   ([coll criteria]
-     (as-clojure (.findOne coll (as-mongo criteria)))))
+     (find-one coll {} nil))
+  ([coll criteria fields]
+     (as-clojure (.findOne coll (as-mongo criteria) (as-mongo fields)))))
 
 (defn remove
   "Remove all documents matching the criteria."
@@ -112,5 +116,5 @@
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
     (remove coll {})
-    (insert coll {::hello true})
-    (prn (find coll))))
+    (insert coll {::hello false :world false})
+    (prn (find coll {} {::hello true}))))
