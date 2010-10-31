@@ -1,7 +1,8 @@
 (ns hassium.core
   (:import [com.mongodb Mongo BasicDBObject]
+           [org.bson.types ObjectId]
            [clojure.lang Keyword Symbol]
-           [java.util Map List]))
+           [java.util Map List Map$Entry]))
 
 (declare *connection*)
 
@@ -55,6 +56,26 @@
   nil
   (as-mongo [_] nil))
 
+(defprotocol AsClojure
+  (as-clojure [x] "Turn x into a Clojure data structure"))
+
+(extend-protocol AsClojure
+  Map
+  (as-clojure [m]
+    (into {}
+      (for [^Map$Entry e m]
+        [(keyword (.getKey e))
+         (as-clojure (.getValue e))])))
+  List
+  (as-clojure [coll]
+    (map as-clojure coll))
+  String
+  (as-clojure [s] s)
+  ObjectId
+  (as-clojure [id] (.toString id))
+  nil
+  (as-clojure [_] nil))
+
 (defn insert
   "Insert the supplied document maps into the MongoDB collection."
   [collection & documents]
@@ -64,7 +85,7 @@
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
     (insert coll {:foo "bar"})
-    (prn (.findOne coll))))
+    (prn (as-clojure (.findOne coll)))))
 
 (def document
   (doto (BasicDBObject.)
