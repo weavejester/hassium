@@ -1,4 +1,5 @@
 (ns hassium.core
+  (:refer-clojure :exclude [find remove])
   (:import [com.mongodb Mongo DBCursor BasicDBObject]
            [org.bson.types ObjectId]
            [clojure.lang Keyword Symbol]
@@ -82,25 +83,32 @@
   (as-clojure [_] nil))
 
 (defn insert
-  "Insert the supplied document maps into the MongoDB collection."
+  "Insert the supplied documents into the collection."
   [coll & docs]
   (doseq [doc docs]
     (.save coll (as-mongo doc))))
 
 (defn find
+  "Find all documents in the collection matching the criteria."
   ([coll]
      (as-clojure (.find coll)))
   ([coll criteria]
      (as-clojure (.find coll (as-mongo criteria)))))
 
 (defn find-one
-  "Find one document from the database matching the criteria."
+  "Find one document from the collection matching the criteria."
   ([coll]
      (as-clojure (.findOne coll)))
   ([coll criteria]
      (as-clojure (.findOne coll (as-mongo criteria)))))
 
+(defn remove
+  "Remove all documents matching the criteria."
+  [coll criteria]
+  (.remove coll (as-mongo criteria)))
+
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
-    (insert coll {:foo "bar"})
-    (prn (find coll {:foo "bar"}))))
+    (remove coll {:hello "world"})
+    (remove coll {:foo "bar"})
+    (prn (find coll))))
