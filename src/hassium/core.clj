@@ -42,17 +42,19 @@
   (as-mongo [m]
     (let [dbo (BasicDBObject.)]
       (doseq [[k v] m]
-        (.put dbo (name k) (as-mongo v)))
+        (.put dbo (.replace (as-mongo k) \. \$)
+                  (as-mongo v)))
       dbo))
   List
   (as-mongo [coll]
     (map as-mongo coll))
   Keyword
-  (as-mongo [kw] (subs 1 (str kw)))
+  (as-mongo [kw]
+    (subs (str kw) 1))
   Symbol
   (as-mongo [s] (str s))
-  String
-  (as-mongo [s] s)
+  Object
+  (as-mongo [x] x)
   nil
   (as-mongo [_] nil))
 
@@ -64,13 +66,11 @@
   (as-clojure [m]
     (into {}
       (for [^Map$Entry e m]
-        [(keyword (.getKey e))
+        [(-> (.getKey e) (.replace \$ \.) keyword)
          (as-clojure (.getValue e))])))
   List
   (as-clojure [coll]
     (map as-clojure coll))
-  String
-  (as-clojure [s] s)
   ObjectId
   (as-clojure [id] (.toString id))
   DBCursor
@@ -79,6 +79,8 @@
       (if (.hasNext cursor)
         (cons (as-clojure (.next cursor))
               (as-clojure cursor)))))
+  Object
+  (as-clojure [x] x)
   nil
   (as-clojure [_] nil))
 
@@ -109,6 +111,6 @@
 
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
-    (remove coll {:hello "world"})
-    (remove coll {:foo "bar"})
+    (remove coll {})
+    (insert coll {::hello true})
     (prn (find coll))))
