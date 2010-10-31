@@ -5,7 +5,6 @@
            [java.util Map List Map$Entry]))
 
 (declare *connection*)
-
 (declare *database*)
 
 (defn connect
@@ -78,15 +77,18 @@
 
 (defn insert
   "Insert the supplied document maps into the MongoDB collection."
-  [collection & documents]
-  (doseq [doc documents]
-    (.save collection (as-mongo document))))
+  [coll & docs]
+  (doseq [doc docs]
+    (.save coll (as-mongo doc))))
+
+(defn find-one
+  "Find one document from the database matching the criteria."
+  ([coll]
+     (as-clojure (.findOne coll)))
+  ([coll criteria]
+     (as-clojure (.findOne coll (as-mongo criteria)))))
 
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
     (insert coll {:foo "bar"})
-    (prn (as-clojure (.findOne coll)))))
-
-(def document
-  (doto (BasicDBObject.)
-    (.put "hello" "world")))
+    (prn (find-one coll {:foo "bar"}))))
