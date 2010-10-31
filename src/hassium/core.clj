@@ -48,9 +48,9 @@
   (as-mongo [coll]
     (map as-mongo coll))
   Keyword
-  (as-mongo [kw] (name kw))
+  (as-mongo [kw] (subs 1 (str kw)))
   Symbol
-  (as-mongo [s] (name s))
+  (as-mongo [s] (str s))
   String
   (as-mongo [s] s)
   nil
