@@ -1,5 +1,5 @@
 (ns hassium.core
-  (:import [com.mongodb Mongo BasicDBObject]
+  (:import [com.mongodb Mongo DBCursor BasicDBObject]
            [org.bson.types ObjectId]
            [clojure.lang Keyword Symbol]
            [java.util Map List Map$Entry]))
@@ -72,6 +72,12 @@
   (as-clojure [s] s)
   ObjectId
   (as-clojure [id] (.toString id))
+  DBCursor
+  (as-clojure [^DBCursor cursor]
+    (lazy-seq
+      (if (.hasNext cursor)
+        (cons (as-clojure (.next cursor))
+              (as-clojure cursor)))))
   nil
   (as-clojure [_] nil))
 
@@ -80,6 +86,12 @@
   [coll & docs]
   (doseq [doc docs]
     (.save coll (as-mongo doc))))
+
+(defn find
+  ([coll]
+     (as-clojure (.find coll)))
+  ([coll criteria]
+     (as-clojure (.find coll (as-mongo criteria)))))
 
 (defn find-one
   "Find one document from the database matching the criteria."
@@ -91,4 +103,4 @@
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
     (insert coll {:foo "bar"})
-    (prn (find-one coll {:foo "bar"}))))
+    (prn (find coll {:foo "bar"}))))
