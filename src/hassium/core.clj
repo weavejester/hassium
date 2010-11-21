@@ -1,5 +1,5 @@
 (ns hassium.core
-  (:refer-clojure :exclude [find remove])
+  (:refer-clojure :exclude [find remove sort])
   (:import [com.mongodb Mongo DBCursor BasicDBObject]
            [org.bson.types ObjectId]
            [clojure.lang IDeref Keyword Symbol]
@@ -79,6 +79,8 @@
   (as-clojure [_] nil))
 
 (defprotocol Stateful
+  (state [self]
+    "Returns the internal state of the object.")
   (update [self func]
     "Returns a new object of the same type with the internal state updated
     with the specified function."))
@@ -93,6 +95,7 @@
   IDeref
   (deref [_] (cursor-seq (make-cursor)))
   Stateful
+  (state [_] (make-cursor))
   (update [_ f] (Cursor. #(f (make-cursor)))))
 
 (defn insert
@@ -111,9 +114,30 @@
      (Cursor. #(.find coll (as-mongo criteria) (as-mongo fields)))))
 
 (defn limit
-  "Limit a result set to a maximum number of entries."
+  "Limit a cursor to a maximum of n entries."
   [cursor n]
   (update cursor #(.limit % n)))
+
+(defn skip
+  "Skip the first n entries of the cursor."
+  [cursor n]
+  (update cursor #(.skip % n)))
+
+(defn sort
+  "Sort the cursor according to the supplied criteria."
+  [cursor criteria]
+  (update cursor #(.sort % (as-mongo criteria))))
+
+(defn snapshot
+  "Use snapshot mode for the cursor."
+  [cursor]
+  (update cursor #(.snapshot %)))
+
+(defn count-all
+  "Count the number of elements matching this query, without taking into
+  account skip or limit."
+  [cursor]
+  (.count (state cursor)))
 
 (defn find-one
   "Find one document from the collection matching the criteria."
@@ -136,5 +160,5 @@
             {:foo "bar"}
             {:foo "baz"}
             {:foo "baa"})
-    (prn @(-> (find coll)
-              (limit 2)))))
+    (prn @(-> (find coll) (limit 2)))
+    (prn (-> (find coll) (count-all)))))
