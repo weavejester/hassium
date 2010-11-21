@@ -1,5 +1,5 @@
 (ns hassium.core
-  (:refer-clojure :exclude [find remove sort])
+  (:refer-clojure :exclude [find remove])
   (:import [com.mongodb Mongo DBCursor BasicDBObject]
            [org.bson.types ObjectId]
            [clojure.lang Counted IDeref Keyword Symbol]
@@ -29,13 +29,8 @@
        (try ~@body
             (finally (.close *connection*))))))
 
-(defn collection
-  "Returns a MongoDB collection object."
-  ([name]    (collection *database* name))
-  ([db name] (.getCollection db name)))
-
 (defprotocol AsMongo
-  (as-mongo [x] "Turn x into a com.mongodb.DBObject"))
+  (as-mongo [x] "Turn x into a com.mongodb Java object."))
 
 (extend-protocol AsMongo
   Map
@@ -78,6 +73,16 @@
   nil
   (as-clojure [_] nil))
 
+(defrecord Collection [name]
+  AsMongo
+  (as-mongo [_]
+    (.getCollection *database* name)))
+
+(defn collection
+  "Returns a MongoDB collection."
+  [name]
+  (Collection. name))
+
 (defn- cursor-seq [^DBCursor cursor]
   (lazy-seq
     (if (.hasNext cursor)
@@ -92,26 +97,38 @@
   Counted
   (count [_] (.count (make-cursor))))
 
+(defmacro as-mongo->
+  "Like ->, but wraps arguments of functions in as-mongo.
+  e.g. (mongo-> cursor (.sort critera))
+       => (.sort (as-mongo cursor) (as-mongo criteria))"
+  [x & forms]
+  `(-> (as-mongo ~x)
+       ~@(for [f forms]
+           (if (seq? f)
+             (cons (first f)
+                   (for [a (rest f)] `(as-mongo ~a)))
+             f))))
+
 (defn limit
   "Return a cursor limited to at most n results."
   [cursor n]
-  (Cursor. #(.limit (as-mongo cursor) n)))
+  (Cursor. #(as-mongo-> cursor (.limit n))))
 
 (defn skip
   "Return a cursor that skips the first n results."
   [cursor n]
-  (Cursor. #(.skip (as-mongo cursor) n)))
+  (Cursor. #(as-mongo-> cursor (.skip n))))
 
 (defn order-by
   "Return a cursor ordered by the supplied criteria."
   [cursor criteria]
-  (Cursor. #(.sort (as-mongo cursor) (as-mongo criteria))))
+  (Cursor. #(as-mongo-> cursor (.sort criteria))))
 
 (defn insert
   "Insert the supplied documents into the collection."
   [coll & docs]
   (doseq [doc docs]
-    (.save coll (as-mongo doc))))
+    (as-mongo-> coll (.save doc))))
 
 (defn find
   "Find all documents in the collection matching the criteria."
@@ -120,7 +137,7 @@
   ([coll criteria]
      (find coll criteria nil))
   ([coll criteria fields]
-     (Cursor. #(.find coll (as-mongo criteria) (as-mongo fields)))))
+     (Cursor. #(as-mongo-> coll (.find criteria fields)))))
 
 (defn find-one
   "Find one document from the collection matching the criteria."
@@ -129,12 +146,12 @@
   ([coll criteria]
      (find-one coll criteria nil))
   ([coll criteria fields]
-     (as-clojure (.findOne coll (as-mongo criteria) (as-mongo fields)))))
+     (as-clojure (as-mongo-> coll (.findOne criteria fields)))))
 
 (defn remove
   "Remove all documents matching the criteria."
   [coll criteria]
-  (.remove coll (as-mongo criteria)))
+  (as-mongo-> coll (.remove criteria)))
 
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
