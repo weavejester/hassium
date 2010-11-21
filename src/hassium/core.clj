@@ -78,15 +78,22 @@
   nil
   (as-clojure [_] nil))
 
+(defprotocol Stateful
+  (update [self func]
+    "Returns a new object of the same type with the internal state updated
+    with the specified function."))
+
 (defn- cursor-seq [^DBCursor cursor]
   (lazy-seq
-   (if (.hasNext cursor)
-     (cons (as-clojure (.next cursor))
-           (cursor-seq cursor)))))
+    (if (.hasNext cursor)
+      (cons (as-clojure (.next cursor))
+            (cursor-seq cursor)))))
 
 (deftype Cursor [make-cursor]
   IDeref
-  (deref [_] (cursor-seq (make-cursor))))
+  (deref [_] (cursor-seq (make-cursor)))
+  Stateful
+  (update [_ f] (Cursor. #(f (make-cursor)))))
 
 (defn insert
   "Insert the supplied documents into the collection."
@@ -102,6 +109,11 @@
      (find coll criteria nil))
   ([coll criteria fields]
      (Cursor. #(.find coll (as-mongo criteria) (as-mongo fields)))))
+
+(defn limit
+  "Limit a result set to a maximum number of entries."
+  [cursor n]
+  (update cursor #(.limit % n)))
 
 (defn find-one
   "Find one document from the collection matching the criteria."
@@ -120,6 +132,9 @@
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
     (remove coll {})
-    (insert coll {:foo "bar"}
-                 {:foo "baz"})
-    (prn @(find coll {:foo "bar"}))))
+    (insert coll
+            {:foo "bar"}
+            {:foo "baz"}
+            {:foo "baa"})
+    (prn @(-> (find coll)
+              (limit 2)))))
