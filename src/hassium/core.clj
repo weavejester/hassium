@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [find remove sort])
   (:import [com.mongodb Mongo DBCursor BasicDBObject]
            [org.bson.types ObjectId]
-           [clojure.lang IDeref Keyword Symbol]
+           [clojure.lang Counted IDeref Keyword Symbol]
            [java.util Map List Map$Entry]))
 
 (declare *connection*)
@@ -79,8 +79,6 @@
   (as-clojure [_] nil))
 
 (defprotocol Stateful
-  (state [self]
-    "Returns the internal state of the object.")
   (update [self func]
     "Returns a new object of the same type with the internal state updated
     with the specified function."))
@@ -95,8 +93,9 @@
   IDeref
   (deref [_] (cursor-seq (make-cursor)))
   Stateful
-  (state [_] (make-cursor))
-  (update [_ f] (Cursor. #(f (make-cursor)))))
+  (update [_ f] (Cursor. #(f (make-cursor))))
+  Counted
+  (count [_] (.count (make-cursor))))
 
 (defn insert
   "Insert the supplied documents into the collection."
@@ -133,12 +132,6 @@
   [cursor]
   (update cursor #(.snapshot %)))
 
-(defn count-all
-  "Count the number of elements matching this query, without taking into
-  account skip or limit."
-  [cursor]
-  (.count (state cursor)))
-
 (defn find-one
   "Find one document from the collection matching the criteria."
   ([coll]
@@ -161,4 +154,4 @@
             {:foo "baz"}
             {:foo "baa"})
     (prn @(-> (find coll) (limit 2)))
-    (prn (-> (find coll) (count-all)))))
+    (prn (-> (find coll) (count)))))
