@@ -78,13 +78,15 @@
   nil
   (as-clojure [_] nil))
 
-(deftype Cursor [^DBCursor cursor]
+(defn- cursor-seq [^DBCursor cursor]
+  (lazy-seq
+   (if (.hasNext cursor)
+     (cons (as-clojure (.next cursor))
+           (cursor-seq cursor)))))
+
+(deftype Cursor [make-cursor]
   IDeref
-  (deref [_]
-    (lazy-seq
-      (if (.hasNext cursor)
-        (cons (as-clojure (.next cursor))
-              (as-clojure cursor))))))
+  (deref [_] (cursor-seq (make-cursor))))
 
 (defn insert
   "Insert the supplied documents into the collection."
@@ -97,16 +99,16 @@
   ([coll]
      (find coll {}))
   ([coll criteria]
-     (find coll {} nil))
+     (find coll criteria nil))
   ([coll criteria fields]
-     (Cursor. (.find coll (as-mongo criteria) (as-mongo fields)))))
+     (Cursor. #(.find coll (as-mongo criteria) (as-mongo fields)))))
 
 (defn find-one
   "Find one document from the collection matching the criteria."
   ([coll]
      (find-one coll {}))
   ([coll criteria]
-     (find-one coll {} nil))
+     (find-one coll criteria nil))
   ([coll criteria fields]
      (as-clojure (.findOne coll (as-mongo criteria) (as-mongo fields)))))
 
@@ -118,5 +120,6 @@
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
     (remove coll {})
-    (insert coll {::hello false :world false})
-    (prn @(find coll {} {::hello true}))))
+    (insert coll {:foo "bar"}
+                 {:foo "baz"})
+    (prn @(find coll {:foo "bar"}))))
