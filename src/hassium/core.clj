@@ -1,5 +1,4 @@
 (ns hassium.core
-  (:refer-clojure :exclude [find remove])
   (:import [com.mongodb Mongo DBCursor BasicDBObject]
            [org.bson.types ObjectId]
            [clojure.lang Counted IDeref Keyword Symbol]
@@ -130,12 +129,12 @@
   (doseq [doc docs]
     (as-mongo-> coll (.save doc))))
 
-(defn find
+(defn find-all
   "Find all documents in the collection matching the criteria."
   ([coll]
-     (find coll {}))
+     (find-all coll {}))
   ([coll criteria]
-     (find coll criteria nil))
+     (find-all coll criteria nil))
   ([coll criteria fields]
      (Cursor. #(as-mongo-> coll (.find criteria fields)))))
 
@@ -148,17 +147,17 @@
   ([coll criteria fields]
      (as-clojure (as-mongo-> coll (.findOne criteria fields)))))
 
-(defn remove
+(defn delete
   "Remove all documents matching the criteria."
   [coll criteria]
   (as-mongo-> coll (.remove criteria)))
 
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
-    (remove coll {})
+    (delete coll {})
     (insert coll
             {:foo "bar"}
             {:foo "baz"}
             {:foo "baa"})
-    (prn @(-> (find coll) (limit 2)))
-    (prn (-> (find coll) (count)))))
+    (prn @(-> (find-all coll) (limit 2)))
+    (prn (-> (find-all coll) (count)))))
