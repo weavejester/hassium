@@ -83,17 +83,26 @@
     "Returns a new object of the same type with the internal state updated
     with the specified function."))
 
+(defprotocol Cursor
+  (limit [cursor n] "Return a cursor limited to at most n results.")
+  (skip [cursor n]  "Return a cursor that skips the first n results.")
+  (order-by [cursor criteria]
+    "Return a cursor ordered by the supplied criteria."))
+
 (defn- cursor-seq [^DBCursor cursor]
   (lazy-seq
     (if (.hasNext cursor)
       (cons (as-clojure (.next cursor))
             (cursor-seq cursor)))))
 
-(deftype Cursor [make-cursor]
+(deftype MongoCursor [make-cursor]
+  Cursor
+  (limit [_ n] (MongoCursor. #(.limit (make-cursor) n)))
+  (skip  [_ n] (MongoCursor. #(.skip (make-cursor) n)))
+  (order-by [_ criteria]
+    (MongoCursor. #(.sort (make-cursor) (as-mongo criteria))))
   IDeref
   (deref [_] (cursor-seq (make-cursor)))
-  Stateful
-  (update [_ f] (Cursor. #(f (make-cursor))))
   Counted
   (count [_] (.count (make-cursor))))
 
@@ -110,27 +119,7 @@
   ([coll criteria]
      (find coll criteria nil))
   ([coll criteria fields]
-     (Cursor. #(.find coll (as-mongo criteria) (as-mongo fields)))))
-
-(defn limit
-  "Limit a cursor to a maximum of n entries."
-  [cursor n]
-  (update cursor #(.limit % n)))
-
-(defn skip
-  "Skip the first n entries of the cursor."
-  [cursor n]
-  (update cursor #(.skip % n)))
-
-(defn sort
-  "Sort the cursor according to the supplied criteria."
-  [cursor criteria]
-  (update cursor #(.sort % (as-mongo criteria))))
-
-(defn snapshot
-  "Use snapshot mode for the cursor."
-  [cursor]
-  (update cursor #(.snapshot %)))
+     (MongoCursor. #(.find coll (as-mongo criteria) (as-mongo fields)))))
 
 (defn find-one
   "Find one document from the collection matching the criteria."
