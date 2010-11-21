@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [find remove])
   (:import [com.mongodb Mongo DBCursor BasicDBObject]
            [org.bson.types ObjectId]
-           [clojure.lang Keyword Symbol]
+           [clojure.lang IDeref Keyword Symbol]
            [java.util Map List Map$Entry]))
 
 (declare *connection*)
@@ -73,16 +73,18 @@
     (map as-clojure coll))
   ObjectId
   (as-clojure [id] (.toString id))
-  DBCursor
-  (as-clojure [^DBCursor cursor]
-    (lazy-seq
-      (if (.hasNext cursor)
-        (cons (as-clojure (.next cursor))
-              (as-clojure cursor)))))
   Object
   (as-clojure [x] x)
   nil
   (as-clojure [_] nil))
+
+(deftype Cursor [^DBCursor cursor]
+  IDeref
+  (deref [_]
+    (lazy-seq
+      (if (.hasNext cursor)
+        (cons (as-clojure (.next cursor))
+              (as-clojure cursor))))))
 
 (defn insert
   "Insert the supplied documents into the collection."
@@ -97,7 +99,7 @@
   ([coll criteria]
      (find coll {} nil))
   ([coll criteria fields]
-     (as-clojure (.find coll (as-mongo criteria) (as-mongo fields)))))
+     (Cursor. (.find coll (as-mongo criteria) (as-mongo fields)))))
 
 (defn find-one
   "Find one document from the collection matching the criteria."
@@ -117,4 +119,4 @@
   (let [coll (collection "testCollection")]
     (remove coll {})
     (insert coll {::hello false :world false})
-    (prn (find coll {} {::hello true}))))
+    (prn @(find coll {} {::hello true}))))
