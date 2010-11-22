@@ -1,4 +1,6 @@
 (ns hassium.core
+  (:require [hassium.predicates :as pred]
+            [clojure.walk :as walk])
   (:import [com.mongodb Mongo DBCursor BasicDBObject]
            [org.bson.types ObjectId]
            [clojure.lang Counted IDeref Keyword Symbol]
@@ -152,12 +154,22 @@
   [coll criteria]
   (as-mongo-> coll (.remove criteria)))
 
+(defmacro where [& clauses]
+  `(merge
+     ~@(walk/postwalk-replace
+         {'=    `pred/eq
+          'not= `pred/ne
+          '>    `pred/gt
+          '<    `pred/lt
+          '>=   `pred/gte
+          '<=   `pred/lte
+          'not  `pred/not}
+         clauses)))
+
 (with-connection {:database "mydb"}
   (let [coll (collection "testCollection")]
     (delete coll {})
-    (insert coll
-            {:foo "bar"}
-            {:foo "baz"}
-            {:foo "baa"})
-    (prn @(-> (find-all coll) (limit 2)))
-    (prn (-> (find-all coll) (count)))))
+    (insert coll {:foo "bar"}
+                 {:foo "baz"}
+                 {:foo "baa"})
+    (prn @(-> coll (find-all (where (= :foo "bar")))))))
