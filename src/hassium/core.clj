@@ -151,10 +151,14 @@
 
 (defn delete
   "Remove all documents matching the criteria."
-  [coll criteria]
-  (as-mongo-> coll (.remove criteria)))
+  ([coll]
+     (delete coll {}))
+  ([coll criteria]
+     (as-mongo-> coll (.remove criteria))))
 
-(defmacro where [& clauses]
+(defmacro where
+  "A small DSL for constructing a MongoDB query using S-expressions."
+  [& clauses]
   `(merge
      ~@(walk/postwalk-replace
          {'=    `pred/eq
@@ -165,11 +169,3 @@
           '<=   `pred/lte
           'not  `pred/not}
          clauses)))
-
-(with-connection {:database "mydb"}
-  (let [coll (collection "testCollection")]
-    (delete coll {})
-    (insert coll {:foo "bar"}
-                 {:foo "baz"}
-                 {:foo "baa"})
-    (prn @(-> coll (find-all (where (= :foo "bar")))))))
