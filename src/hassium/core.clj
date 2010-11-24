@@ -120,10 +120,16 @@
   [cursor n]
   (Cursor. #(as-mongo-> cursor (.skip n))))
 
+(defn- sorting-order [fields]
+  (apply merge
+         (for [f fields]
+           (if (map? f) f {f 1}))))
+
 (defn order-by
-  "Return a cursor ordered by the supplied criteria."
-  [cursor criteria]
-  (Cursor. #(as-mongo-> cursor (.sort criteria))))
+  "Return a cursor ordered by the supplied fields."
+  [cursor & fields]
+  (let [order (sorting-order fields)]
+    (Cursor. #(as-mongo-> cursor (.sort order)))))
 
 (defn save
   "Save the map into the collection. The inserted map is returned, with a

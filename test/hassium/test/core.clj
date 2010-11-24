@@ -36,14 +36,18 @@
   (is (= (count (find-all people)) 3)))
 
 (deftest limit-test
-  (let [couple @(-> people find-all (limit 2))]
-    (is (= (map :name couple)
-           ["Alice" "Bob"]))))
+  (is (= (map :name @(-> people find-all (limit 2)))
+         ["Alice" "Bob"])))
 
 (deftest skip-test
-  (let [couple @(-> people find-all (skip 1))]
-    (is (= (map :name couple)
-           ["Bob" "Carol"]))))
+  (is (= (map :name @(-> people find-all (skip 1)))
+         ["Bob" "Carol"])))
+
+(deftest order-by-test
+  (is (= (map :name @(-> people find-all (order-by :sex)))
+         ["Alice" "Carol" "Bob"]))
+  (is (= (map :name @(-> people find-all (order-by {:sex -1})))
+         ["Bob" "Alice" "Carol"])))
 
 (deftest delete-test
   (delete people {:name "Alice"})
