@@ -174,5 +174,5 @@
           '<    `pred/lt
           '>=   `pred/gte
           '<=   `pred/lte
-          'not  `pred/not}
+          'not  `pred/not*}
          clauses)))

@@ -4,32 +4,44 @@
 
 (def db {:database "test"})
 
-(def examples (collection "examples"))
+(def people (collection "people"))
 
-(defn clear-examples [func]
+(defn setup [func]
   (with-connection db
-    (delete examples)
+    (delete people)
+    (insert people
+      {:name "Alice", :sex "Female"}
+      {:name "Bob",   :sex "Male"}
+      {:name "Carol", :sex "Female"})
     (func)))
 
-(defn remove-ids [docs]
-  (for [d docs] (dissoc d :_id)))
-
-(use-fixtures :each clear-examples)
+(use-fixtures :each setup)
 
 (deftest save-test
-  (let [doc (save examples {:foo "bar"})]
-    (is (contains? doc :_id))
-    (is (= (:foo doc) "bar"))))
+  (let [person (save people {:name "Dave"})]
+    (is (contains? person :_id))
+    (is (= (:name person) "Dave"))))
 
-(deftest insertion-test
-  (let [docs [{:foo "bar"} {:foo "baz"}]]
-    (apply insert examples docs)
-    (is (= (remove-ids @(find-all examples))
-           docs))))
+(deftest find-all-test
+  (let [females @(find-all people {:sex "Female"})]
+    (is (= (map :name females)
+           ["Alice" "Carol"]))))
 
 (deftest find-one-test
-  (let [docs [{:foo "bar"} {:foo "baz"}]]
-    (apply insert examples docs)
-    (is (= (-> (find-one examples {:foo "baz"})
-               (dissoc :_id))
-           {:foo "baz"}))))
+  (let [person (find-one people {:name "Alice"})]
+    (is (= (:sex person)
+           "Female"))))
+
+(deftest count-test
+  (is (= (count (find-all people)) 3)))
+
+(deftest delete-test
+  (delete people {:name "Alice"})
+  (is (= (map :name @(find-all people))
+         ["Bob" "Carol"])))
+
+(deftest where-test
+  (is (= (where (= :x 1)) {:x 1}))
+  (is (= (where (> :x 1)) {:x {:$gt 1}}))
+  (is (= (where (not (< :x 1)))
+         {:x {:$not {:$lt 1}}})))

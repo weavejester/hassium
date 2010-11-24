@@ -9,4 +9,7 @@
 (defn gte [x y] {x {:$gte y}})
 (defn lte [x y] {x {:$lte y}})
 
-(defn not* [expr] {:$not expr})
+(defn not* [expr]
+  {:pre [(map? expr)]}
+  (let [[[k v]] (seq expr)]
+    {k {:$not v}}))
