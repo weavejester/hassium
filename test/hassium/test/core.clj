@@ -4,7 +4,7 @@
 
 (def db {:database "test"})
 
-(def examples (collection "qexamples"))
+(def examples (collection "examples"))
 
 (defn clear-examples [func]
   (with-connection db
@@ -15,6 +15,11 @@
   (for [d docs] (dissoc d :_id)))
 
 (use-fixtures :each clear-examples)
+
+(deftest save-test
+  (let [doc (save examples {:foo "bar"})]
+    (is (contains? doc :_id))
+    (is (= (:foo doc) "bar"))))
 
 (deftest insertion-test
   (let [docs [{:foo "bar"} {:foo "baz"}]]

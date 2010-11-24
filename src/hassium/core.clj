@@ -125,11 +125,18 @@
   [cursor criteria]
   (Cursor. #(as-mongo-> cursor (.sort criteria))))
 
+(defn save
+  "Save the map into the collection. The inserted map is returned, with a
+  generated :_id key if one has not been already set."
+  [coll doc]
+  (let [mongo-doc (as-mongo doc)]
+    (.save (as-mongo coll) mongo-doc)
+    (as-clojure mongo-doc)))
+
 (defn insert
-  "Insert the supplied documents into the collection."
+  "Insert each document map into the collection."
   [coll & docs]
-  (doseq [doc docs]
-    (as-mongo-> coll (.save doc))))
+  (doseq [doc docs] (save coll doc)))
 
 (defn find-all
   "Find all documents in the collection matching the criteria."
