@@ -46,7 +46,7 @@
 (deftest order-by-test
   (is (= (map :name @(-> people find-all (order-by :sex)))
          ["Alice" "Carol" "Bob"]))
-  (is (= (map :name @(-> people find-all (order-by {:sex -1})))
+  (is (= (map :name @(-> people find-all (order-by (desc :sex))))
          ["Bob" "Alice" "Carol"])))
 
 (deftest delete-test

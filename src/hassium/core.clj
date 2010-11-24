@@ -131,6 +131,16 @@
   (let [order (sorting-order fields)]
     (Cursor. #(as-mongo-> cursor (.sort order)))))
 
+(defn asc
+  "Field to be sorted in ascending order."
+  [field]
+  {field 1})
+
+(defn desc
+  "Field to be sorted in descending order."
+  [field]
+  {field -1})
+
 (defn save
   "Save the map into the collection. The inserted map is returned, with a
   generated :_id key if one has not been already set."
