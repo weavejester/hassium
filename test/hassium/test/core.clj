@@ -2,18 +2,17 @@
   (:use [hassium.core] :reload)
   (:use [clojure.test]))
 
-(def db {:database "test"})
+(def db (database "test"))
 
-(def people (collection "people"))
+(def people (collection db "people"))
 
 (defn setup [func]
-  (with-connection db
-    (delete people)
-    (insert people
-      {:name "Alice", :sex "Female"}
-      {:name "Bob",   :sex "Male"}
-      {:name "Carol", :sex "Female"})
-    (func)))
+  (delete people)
+  (insert people
+    {:name "Alice", :sex "Female"}
+    {:name "Bob",   :sex "Male"}
+    {:name "Carol", :sex "Female"})
+  (func))
 
 (use-fixtures :each setup)
 

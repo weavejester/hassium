@@ -6,29 +6,17 @@
            [clojure.lang Counted IDeref Keyword Symbol]
            [java.util Map List Map$Entry]))
 
-(declare *connection*)
-(declare *database*)
-
-(defn connect
-  "Connect to a MongoDB server."
-  [connection]
-  (Mongo. (:host connection "127.0.0.1")
-          (:port connection 27017)))
+(def ^{:doc "Connect to a MongoDB server."}
+  connect
+  (memoize
+    (fn ([] (Mongo.))
+       ([host] (Mongo. host))
+       ([host port] (Mongo. host port)))))
 
 (defn database
-  "Returns a MongoDB database object."
-  [name]
-  (.getDB *connection* name))
-
-(defmacro with-connection
-  "Evaluates its body in the context of the supplied MongoDB connection.
-  The connection address is specified as a map, with keys for :host and
-  :port."
-  [address & body]
-  `(binding [*connection* (connect ~address)]
-     (binding [*database* (database (:database ~address))]
-       (try ~@body
-            (finally (.close *connection*))))))
+  "Get a MongoDB database from a connection."
+  ([name]      (.getDB (connect) name))
+  ([conn name] (.getDB conn name)))
 
 (defprotocol AsMongo
   (as-mongo [x] "Turn x into a com.mongodb Java object."))
@@ -74,15 +62,10 @@
   nil
   (as-clojure [_] nil))
 
-(defrecord Collection [name]
-  AsMongo
-  (as-mongo [_]
-    (.getCollection *database* name)))
-
 (defn collection
-  "Returns a MongoDB collection."
-  [name]
-  (Collection. name))
+  "Returns a MongoDB collection from the database."
+  [db name]
+  (.getCollection db name))
 
 (defn- cursor-seq [^DBCursor cursor]
   (lazy-seq
