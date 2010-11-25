@@ -120,17 +120,6 @@
   [cursor n]
   (Cursor. #(as-mongo-> cursor (.skip n))))
 
-(defn- sorting-order [fields]
-  (apply merge
-         (for [f fields]
-           (if (map? f) f {f 1}))))
-
-(defn order-by
-  "Return a cursor ordered by the supplied fields."
-  [cursor & fields]
-  (let [order (sorting-order fields)]
-    (Cursor. #(as-mongo-> cursor (.sort order)))))
-
 (defn asc
   "Field to be sorted in ascending order."
   [field]
@@ -140,6 +129,23 @@
   "Field to be sorted in descending order."
   [field]
   {field -1})
+
+(defn- ordered-fields [fields]
+  (apply merge
+         (for [f fields]
+           (if (map? f) f {f 1}))))
+
+(defn order-by
+  "Return a cursor ordered by the supplied fields."
+  [cursor & fields]
+  (let [order (ordered-fields fields)]
+    (Cursor. #(as-mongo-> cursor (.sort order)))))
+
+(defn ensure-index
+  "Add an index to the fields if it is not already indexed."
+  [coll fields]
+  (let [index (ordered-fields fields)]
+    (as-mongo-> coll (.ensureIndex index))))
 
 (defn save
   "Save the map into the collection. The inserted map is returned, with a
