@@ -1,7 +1,7 @@
 (ns hassium.core
   (:require [hassium.predicates :as pred]
             [clojure.walk :as walk])
-  (:import [com.mongodb Mongo DBCursor BasicDBObject]
+  (:import [com.mongodb Mongo DB DBCollection DBCursor BasicDBObject]
            [org.bson.types ObjectId]
            [clojure.lang Counted IDeref Keyword Symbol]
            [java.util Map List Map$Entry]))
@@ -14,9 +14,14 @@
        ([host port] (Mongo. host port)))))
 
 (defn database
-  "Get a MongoDB database from a connection."
+  "Get a MongoDB database from a connection, creating it if necessary."
   ([name]      (.getDB (connect) name))
   ([conn name] (.getDB conn name)))
+
+(defn drop-database
+  "Drop an existing database."
+  [^DB db]
+  (.dropDatabase db))
 
 (defprotocol AsMongo
   (as-mongo [x] "Turn x into a com.mongodb Java object."))
@@ -64,8 +69,13 @@
 
 (defn collection
   "Returns a MongoDB collection from the database."
-  [db name]
+  [^DB db name]
   (.getCollection db name))
+
+(defn drop-collection
+  "Drop the collection."
+  [^DBCollection coll]
+  (.drop coll))
 
 (defn- cursor-seq [^DBCursor cursor]
   (lazy-seq
@@ -125,10 +135,17 @@
     (Cursor. #(as-mongo-> cursor (.sort order)))))
 
 (defn ensure-index
-  "Add an index to the fields if it is not already indexed."
+  "Add an index to the fields if it is not already indexed. Returns the
+  collection."
   [coll fields]
   (let [index (ordered-fields fields)]
-    (as-mongo-> coll (.ensureIndex index))))
+    (doto coll (.ensureIndex (as-mongo index)))))
+
+(defn drop-index
+  "Remove an index from the fields. Returns the collection."
+  [coll fields]
+  (let [index (ordered-fields fields)]
+    (doto coll (.dropIndex (as-mongo index)))))
 
 (defn save
   "Save the map into the collection. The inserted map is returned, with a
