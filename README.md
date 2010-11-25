@@ -7,17 +7,15 @@ language.
 Example
 -------
 
-    (def db 
-      {:host "127.0.0.1"
-       :port 27017
-       :database "demo-db"})
-
+    (def db
+      (database "demo")) 
+ 
     (def people
-      (collection "people")
+      (collection db "people")
 
-    (with-connection db
-      (insert people {:name "Alice"}
-                     {:name "Bob"}
-                     {:name "Carol"})
-      (doseq [p @(find-all people)]
-        (println (:name p))))
+    (insert people {:name "Alice"}
+                   {:name "Bob"}
+                   {:name "Carol"})
+
+    (doseq [person @(find-all people)]
+      (println (:name person))))
