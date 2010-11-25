@@ -15,8 +15,8 @@
 
 (defn database
   "Get a MongoDB database from a connection, creating it if necessary."
-  ([name]      (.getDB (connect) name))
-  ([conn name] (.getDB conn name)))
+  ([db-name]      (database (connect) db-name))
+  ([conn db-name] (.getDB conn (name db-name))))
 
 (defn drop-database
   "Drop an existing database."
@@ -69,8 +69,8 @@
 
 (defn collection
   "Returns a MongoDB collection from the database."
-  [^DB db name]
-  (.getCollection db name))
+  [^DB db coll-name]
+  (.getCollection db (name coll-name)))
 
 (defn drop-collection
   "Drop the collection."
