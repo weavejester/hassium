@@ -23,6 +23,11 @@
   [^DB db]
   (.dropDatabase db))
 
+(defn authenticate
+  "Authenticates a database with a username and password."
+  [^DB db username password]
+  (.authenticate db username (char-array password)))
+
 (defprotocol AsMongo
   (as-mongo [x] "Turn x into a com.mongodb Java object."))
 
