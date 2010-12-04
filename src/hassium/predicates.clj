@@ -13,3 +13,10 @@
   {:pre [(map? expr)]}
   (let [[[k v]] (seq expr)]
     {k {:$not v}}))
+
+(defn all [k vs] {k {:$all vs}})
+(defn in [k vs] {k {:$in vs}})
+(defn nin [k vs] {k {:$nin vs}})
+
+(defn exists [k] {k {:$exists true}})
+(defn nexists [k] {k {:$exists false}})

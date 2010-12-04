@@ -195,11 +195,17 @@
   [& clauses]
   `(merge
      ~@(walk/postwalk-replace
-         {'=    `pred/eq
-          'not= `pred/ne
-          '>    `pred/gt
-          '<    `pred/lt
-          '>=   `pred/gte
-          '<=   `pred/lte
-          'not  `pred/not*}
+         {'=     `pred/eq
+          'not=  `pred/ne
+          '>     `pred/gt
+          '<     `pred/lt
+          '>=    `pred/gte
+          '<=    `pred/lte
+          'not   `pred/not*
+          'mod   `pred/mod*
+          'all?  `pred/all
+          'in?   `pred/in
+          'not-in?     `pred/nin
+          'exists?     `pred/exists
+          'not-exists? `pred/nexists}
          clauses)))
